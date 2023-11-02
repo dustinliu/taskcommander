@@ -1,24 +1,29 @@
 package view
 
-import "github.com/rivo/tview"
+import (
+	"github.com/dustinliu/taskcommander/service"
+	"github.com/rivo/tview"
+)
 
 type TaskPannel struct {
 	*tview.Table
 }
 
 func newTaskPannel() *TaskPannel {
-	var pannel *TaskPannel
-	table := tview.NewTable().SetSelectable(true, true)
-	table.SetBorder(true)
-	table.SetCellSimple(0, 0, "aaaaaa").
-		SetCellSimple(1, 0, "bbbbbb").
-		SetCellSimple(2, 0, "cccccc").
-		SetCellSimple(3, 0, "dddddd").
-		SetCellSimple(4, 0, "eeeee")
+	table := tview.NewTable().SetSelectable(true, false)
+	table.SetBorder(true).SetBorderPadding(0, 0, 1, 0)
 
-	pannel = &TaskPannel{
+	table.SetFocusFunc(func() { table.SetBorderStyle(FocusStyle) }).
+		SetBlurFunc(func() { table.SetBorderStyle(BlurStyle) })
+
+	return &TaskPannel{
 		table,
 	}
+}
 
-	return pannel
+func (p *TaskPannel) setTasks(tasks []service.Task) {
+	p.Clear()
+	for i, task := range tasks {
+		p.SetCell(i, 0, tview.NewTableCell(task.Description).SetReference(task))
+	}
 }

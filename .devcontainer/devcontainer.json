@@ -1,5 +1,15 @@
 {
   "name": "taskcommander dev",
   "dockerFile": "Dockerfile",
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "postCreateCommand": "zsh scripts/init_env.zsh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+          "golang.go",
+          "fabiospampinato.vscode-todo-plus",
+          "GitHub.copilot"
+      ]
+    }
+  }
 }
