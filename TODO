@@ -1,3 +1,7 @@
-☐ show detail
+☐ log rotate
+☐ seperated category table to hold the previous ui state
+☐ back to previous focus after close the task form
 ☐ UI add task
-☐ fs notification to monitor the changes
+✔ deal with the panic condition @done(23-11-06 03:32)
+✔ show detail @done(23-11-04 07:50)
+✔ fs notification to monitor the changes @done(23-11-04 06:47)

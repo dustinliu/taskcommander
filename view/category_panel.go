@@ -12,7 +12,7 @@ type CategoryPannel struct {
 func newCategoryPannel() *CategoryPannel {
 	var pannel *CategoryPannel
 	table := tview.NewTable().SetSelectable(true, false)
-	table.SetBorder(true).SetBorderPadding(0, 0, 1, 0).
+	table.SetBorder(true).SetBorderPadding(0, 0, 1, 1).
 		SetFocusFunc(func() { table.SetBorderStyle(FocusStyle) }).
 		SetBlurFunc(func() { table.SetBorderStyle(BlurStyle) })
 
@@ -22,7 +22,7 @@ func newCategoryPannel() *CategoryPannel {
 		SetCellSimple(int(service.Focus), 0, "Focus").
 		Select(int(service.Next), 0).
 		SetSelectionChangedFunc(func(row, colum int) {
-			SendEvent(NewEventCategoryChange(service.Category(row)))
+			service.Events <- service.NewEventCategoryChange(service.Category(row))
 		})
 
 	pannel = &CategoryPannel{

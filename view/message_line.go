@@ -3,20 +3,15 @@ package view
 import "github.com/rivo/tview"
 
 type MessageLine struct {
-	*tview.InputField
+	*tview.TextView
 }
 
 func newMessageLine() *MessageLine {
 	return &MessageLine{
-		tview.NewInputField(),
+		tview.NewTextView(),
 	}
 }
 
 func (l *MessageLine) setText(text string) {
-	l.clear()
-	l.InputField.SetText(text)
-}
-
-func (l *MessageLine) clear() {
-	l.SetText("")
+	l.TextView.SetText(text)
 }

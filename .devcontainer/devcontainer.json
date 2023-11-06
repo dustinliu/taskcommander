@@ -1,7 +1,6 @@
 {
   "name": "taskcommander dev",
   "dockerFile": "Dockerfile",
-  "remoteUser": "vscode",
   "postCreateCommand": "zsh scripts/init_env.zsh",
   "customizations": {
     "vscode": {
@@ -11,5 +10,10 @@
           "GitHub.copilot"
       ]
     }
+  }
+  "features": {
+      "ghcr.io/devcontainers/features/sshd:1": {
+          "version": "latest"
+      }
   }
 }
