@@ -1,2 +1,2 @@
 #!/bin/zsh
-cp test/taskrc $HOME/.taskrc
+cp test/taskrc /root/.taskrc

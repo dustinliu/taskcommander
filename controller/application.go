@@ -92,7 +92,7 @@ func (app *Application) addTask(task service.Task) {
 }
 
 func (app *Application) categoryChanged(cat service.Category) {
-	tasks, err := service.ListTasks(cat)
+	tasks, err := service.ListTasksByCategory(cat)
 	if err != nil {
 		app.tui.PrintMessage(err.Error())
 		service.GetLogger().Error(err.Error())

@@ -31,14 +31,29 @@ func (p *InfoPannel) SetTask(task *service.Task) {
 	}
 	p.Clear()
 
-	i := 0
-	p.SetCellSimple(i, 0, "Id").SetCellSimple(0, 1, strconv.Itoa(task.Id))
+	row := 0
+	p.SetCellSimple(row, 0, "Id").SetCellSimple(0, 1, strconv.Itoa(task.Id))
 
-	i++
-	p.SetCellSimple(i, 0, "Description").SetCellSimple(1, 1, task.Description)
+	row++
+	p.SetCellSimple(row, 0, "Description").SetCellSimple(row, 1, task.Description)
+
+	if len(task.Tags) > 0 {
+		row++
+		tags := ""
+		for _, tag := range task.Tags {
+			tags += tag + " "
+		}
+		p.SetCellSimple(row, 0, "Tags").SetCellSimple(row, 1, tags)
+	}
 
 	if task.Project != "" {
-		i++
-		p.SetCellSimple(i, 0, "Project").SetCellSimple(2, 1, task.Project)
+		row++
+		p.SetCellSimple(row, 0, "Project").SetCellSimple(row, 1, task.Project)
 	}
+
+	row++
+	p.SetCellSimple(row, 0, "UpdateAt").SetCellSimple(row, 1, task.UpdatedAt.Format("2006-01-02 15:04:05"))
+
+	row++
+	p.SetCellSimple(row, 0, "CreateAt").SetCellSimple(row, 1, task.CreatedAt.Format("2006-01-02 15:04:05"))
 }

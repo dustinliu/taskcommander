@@ -5,7 +5,13 @@ import (
 	"time"
 )
 
-type TaskTime time.Time
+type TaskTime struct {
+	time.Time
+}
+
+func NewTaskTime() TaskTime {
+	return TaskTime{time.Now()}
+}
 
 func (t *TaskTime) UnmarshalJSON(b []byte) error {
 	value := strings.Trim(string(b), `"`)
@@ -17,10 +23,10 @@ func (t *TaskTime) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*t = TaskTime(tt)
+	*t = TaskTime{tt}
 	return nil
 }
 
 func (t TaskTime) MarshalJSON() ([]byte, error) {
-	return []byte(time.Time(t).Format("20060102T150405Z")), nil
+	return []byte(t.Format("20060102T150405Z")), nil
 }

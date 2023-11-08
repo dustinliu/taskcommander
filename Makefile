@@ -36,6 +36,11 @@ $(PLATFORMS):
 	@tar zcf $(dist_dir)/$(app)-$(os)-$(arch).tar.gz -C $(target_dir) $(executable)
 	@cd $(dist_dir); $(md5) $(app)-$(os)-$(arch).tar.gz >> checksums.txt
 
+debug: generate
+	@echo building debug version...
+	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(build_dir)/$(app) 
+	@$(build_dir)/$(app)
+
 vet: generate
 	@echo running go vet...
 	@go vet ./...
