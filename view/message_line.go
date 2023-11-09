@@ -2,16 +2,16 @@ package view
 
 import "github.com/rivo/tview"
 
-type MessageLine struct {
+type messageLine struct {
 	*tview.TextView
 }
 
-func newMessageLine() *MessageLine {
-	return &MessageLine{
+func newMessageLine() *messageLine {
+	return &messageLine{
 		tview.NewTextView(),
 	}
 }
 
-func (l *MessageLine) setText(text string) {
+func (l *messageLine) setText(text string) {
 	l.TextView.SetText(text)
 }

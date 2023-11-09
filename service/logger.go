@@ -27,6 +27,8 @@ func init() {
 	config.OutputPaths = []string{logPath}
 	config.DisableCaller = false
 	config.DisableStacktrace = false
+	config.EncoderConfig.FunctionKey = "func"
+	config.EncoderConfig.CallerKey = ""
 	l, err := config.Build()
 	if err != nil {
 		log.Fatal(err)

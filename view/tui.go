@@ -14,10 +14,10 @@ const (
 type TUI struct {
 	*tview.Application
 	pages          *tview.Pages
-	categoryPannel *CategoryPannel
-	taskPannel     *TaskPannel
-	infoPannel     *InfoPannel
-	messageLine    *MessageLine
+	categoryPannel *categoryPannel
+	taskPannel     *taskPannel
+	infoPannel     *infoPannel
+	messageLine    *messageLine
 }
 
 func NewTUI() *TUI {
@@ -39,10 +39,10 @@ func NewTUI() *TUI {
 	return tui
 }
 
-func newMainWin(cat *CategoryPannel,
-	task *TaskPannel,
-	info *InfoPannel,
-	msg *MessageLine) *tview.Flex {
+func newMainWin(cat *categoryPannel,
+	task *taskPannel,
+	info *infoPannel,
+	msg *messageLine) *tview.Flex {
 	flex := tview.NewFlex().
 		AddItem(cat, 0, 1, true).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).

@@ -2,6 +2,7 @@ package view
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/dustinliu/taskcommander/service"
 	"github.com/gdamore/tcell/v2"
@@ -15,15 +16,15 @@ const (
 	Notelabel    = "Note"
 )
 
-type TaskForm struct {
+type taskForm struct {
 	*tview.Form
 
 	projects []string
 	tags     []string
 }
 
-func newTaskForm(task *service.Task, onSave func(*service.Task), onCancel func()) *TaskForm {
-	form := &TaskForm{
+func newTaskForm(task *service.Task, onSave func(*service.Task), onCancel func()) *taskForm {
+	form := &taskForm{
 		tview.NewForm(),
 		service.ListProjects(),
 		service.ListTags(),
@@ -38,45 +39,120 @@ func newTaskForm(task *service.Task, onSave func(*service.Task), onCancel func()
 	}
 
 	form.AddInputField(DescLabel, "", 0, nil, nil).
-		AddFormItem(newInputField(TagsLabel, comp(form.tags), nil)).
-		AddFormItem(newInputField(ProjectLabel, comp(form.projects), nil)).
+		AddFormItem(newProjectInputField()).
+		AddFormItem(newTagsInputField()).
 		AddTextArea(Notelabel, "", 0, 0, 0, nil).
 		AddButton("Save", save).AddButton("Cancel", onCancel).
-		SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Key() {
-			case tcell.KeyEsc:
-				onCancel()
-				return nil
-			}
-			return event
-		}).
+		SetCancelFunc(onCancel).
 		SetBorder(true)
 
 	return form
 }
 
-func comp(candiates []string) func(string) []string {
-	return func(input string) []string {
-		list := []string{}
-		for _, candidate := range candiates {
-			if input != "" && strings.HasPrefix(strings.ToLower(candidate), strings.ToLower(input)) {
-				list = append(list, candidate)
+type projectInputField struct {
+	*tview.InputField
+	projects []string
+}
+
+func newProjectInputField() *projectInputField {
+	p := &projectInputField{}
+	p.InputField = newInputField(ProjectLabel, p.comp, nil)
+	p.projects = service.ListProjects()
+
+	return p
+}
+
+func (p *projectInputField) comp(input string) []string {
+	list := []string{}
+	for _, project := range p.projects {
+		if input != "" && strings.HasPrefix(strings.ToLower(project), strings.ToLower(input)) {
+			list = append(list, project)
+		}
+	}
+	return list
+}
+
+type tagsInputField struct {
+	*tview.InputField
+	tags     []string
+	compList []string
+	changed  bool
+}
+
+func newTagsInputField() *tagsInputField {
+	t := &tagsInputField{}
+	t.InputField = newInputField(TagsLabel, t.complete, t.completed)
+	t.tags = service.ListTags()
+	t.compList = []string{}
+	t.changed = true
+
+	return t
+}
+
+func (t *tagsInputField) complete(input string) []string {
+	if t.changed {
+		t.compList = []string{}
+		for _, tags := range t.tags {
+			keyword := t.GetKeywords()
+			if strings.HasPrefix(strings.ToLower(tags), strings.ToLower(keyword)) {
+				t.compList = append(t.compList, tags)
 			}
 		}
-		return list
+	}
+	return t.compList
+}
+
+func (t *tagsInputField) completed(text string, index int, source int) bool {
+	if text == "" {
+		return true
+	}
+
+	content := t.GetText()
+	tags := strings.Fields(content)
+	if len(tags) > 0 {
+		tags = tags[:len(tags)-1]
+	}
+	tags = append(tags, text)
+
+	switch source {
+	case tview.AutocompletedNavigate:
+		t.changed = false
+		return false
+	case tview.AutocompletedEnter:
+		t.SetText(strings.Join(tags, " "))
+		t.changed = true
+		return true
+	case tview.AutocompletedTab:
+		return true
+	default:
+		return true
 	}
 }
 
+func (t *tagsInputField) GetKeywords() string {
+	tags := strings.Fields(t.GetText())
+	r := []rune(tags[len(tags)-1])
+	if len(tags) == 0 || unicode.IsSpace(r[len(r)-1]) {
+		return ""
+	}
+	if len(tags) == 1 {
+		return tags[0]
+	}
+
+	return tags[len(tags)-1]
+}
+
 func newInputField(label string,
-	comp func(string) []string,
-	comped func(text string, index int, source int) bool) *tview.InputField {
-	mainStyle := tcell.StyleDefault.Background(tcell.ColorWhite).Foreground(tcell.ColorBlack)
-	selectStyle := tcell.StyleDefault.Background(tcell.ColorLightGreen).Foreground(tcell.ColorBlack)
+	complete func(string) []string,
+	completed func(text string, index int, source int) bool) *tview.InputField {
 	input := tview.NewInputField().
 		SetLabel(label).
 		SetFieldWidth(0).
-		SetAutocompleteStyles(tcell.ColorWhite, mainStyle, selectStyle).
-		SetAutocompleteFunc(comp).SetAutocompletedFunc(comped)
+		SetAutocompleteStyles(tcell.ColorWhite, listMainStyle, listSelectStyle).
+		SetAutocompleteFunc(complete)
+	if completed != nil {
+		input.SetAutocompletedFunc(completed)
+	}
 
 	input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {

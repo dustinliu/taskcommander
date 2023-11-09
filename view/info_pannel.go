@@ -7,25 +7,25 @@ import (
 	"github.com/rivo/tview"
 )
 
-type InfoPannel struct {
+type infoPannel struct {
 	*tview.Table
 }
 
-func newInfoPannel() *InfoPannel {
-	var pannel *InfoPannel
+func newInfoPannel() *infoPannel {
+	var pannel *infoPannel
 	table := tview.NewTable().SetSelectable(false, false)
 	table.SetBorder(true).SetBorderPadding(0, 0, 1, 1).
-		SetFocusFunc(func() { table.SetBorderStyle(FocusStyle) }).
-		SetBlurFunc(func() { table.SetBorderStyle(BlurStyle) })
+		SetFocusFunc(func() { table.SetBorderStyle(focusStyle) }).
+		SetBlurFunc(func() { table.SetBorderStyle(blurStyle) })
 
-	pannel = &InfoPannel{
+	pannel = &infoPannel{
 		table,
 	}
 
 	return pannel
 }
 
-func (p *InfoPannel) SetTask(task *service.Task) {
+func (p *infoPannel) SetTask(task *service.Task) {
 	if task == nil {
 		return
 	}

@@ -5,16 +5,16 @@ import (
 	"github.com/rivo/tview"
 )
 
-type TaskPannel struct {
+type taskPannel struct {
 	*tview.Table
 }
 
-func newTaskPannel() *TaskPannel {
+func newTaskPannel() *taskPannel {
 	table := tview.NewTable().SetSelectable(true, false)
 	table.SetBorder(true).SetBorderPadding(0, 0, 1, 1)
 
-	table.SetFocusFunc(func() { table.SetBorderStyle(FocusStyle) }).
-		SetBlurFunc(func() { table.SetBorderStyle(BlurStyle) })
+	table.SetFocusFunc(func() { table.SetBorderStyle(focusStyle) }).
+		SetBlurFunc(func() { table.SetBorderStyle(blurStyle) })
 
 	table.SetSelectionChangedFunc(func(row, colum int) {
 		t := table.GetCell(row, colum).GetReference()
@@ -23,12 +23,12 @@ func newTaskPannel() *TaskPannel {
 		}
 	})
 
-	return &TaskPannel{
+	return &taskPannel{
 		table,
 	}
 }
 
-func (p *TaskPannel) setTasks(tasks []service.Task) {
+func (p *taskPannel) setTasks(tasks []service.Task) {
 	p.Clear()
 	for i, task := range tasks {
 		p.SetCell(i, 0, tview.NewTableCell(task.Description).SetReference(task))
@@ -36,7 +36,7 @@ func (p *TaskPannel) setTasks(tasks []service.Task) {
 	p.Select(0, 0)
 }
 
-func (p *TaskPannel) GetSelectedTask() (*service.Task, bool) {
+func (p *taskPannel) GetSelectedTask() (*service.Task, bool) {
 	row, _ := p.GetSelection()
 	task := p.GetCell(row, 0).GetReference()
 	if task == nil {
