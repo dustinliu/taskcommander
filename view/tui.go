@@ -34,7 +34,7 @@ func NewTUI() *TUI {
 	tui.pages.AddPage(mainLabel,
 		newMainWin(tui.categoryPannel, tui.taskPannel, tui.infoPannel, tui.messageLine),
 		true, true)
-	tui.Application.SetRoot(tui.pages, true)
+	tui.SetRoot(tui.pages, true)
 	tui.SetInputCapture(tui.inputHandler)
 	return tui
 }
@@ -66,6 +66,8 @@ func (tui *TUI) inputHandler(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyTab:
 			tui.ChangeFocus()
+		case tcell.KeyEsc:
+			service.Events <- service.NewEventQuit()
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'q':
@@ -112,8 +114,8 @@ func (tui *TUI) GetCurrentCategory() service.Category {
 
 func (tui *TUI) ChangeFocus() {
 	if tui.categoryPannel.HasFocus() {
-		tui.Application.SetFocus(tui.taskPannel)
+		tui.SetFocus(tui.taskPannel)
 	} else {
-		tui.Application.SetFocus(tui.categoryPannel)
+		tui.SetFocus(tui.categoryPannel)
 	}
 }

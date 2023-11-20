@@ -2,7 +2,6 @@ package view
 
 import (
 	"strings"
-	"unicode"
 
 	"github.com/dustinliu/taskcommander/service"
 	"github.com/gdamore/tcell/v2"
@@ -56,7 +55,7 @@ type projectInputField struct {
 
 func newProjectInputField() *projectInputField {
 	p := &projectInputField{}
-	p.InputField = newInputField(ProjectLabel, p.comp, nil)
+	p.InputField = newInputField(ProjectLabel, p.comp, nil, nil)
 	p.projects = service.ListProjects()
 
 	return p
@@ -81,7 +80,7 @@ type tagsInputField struct {
 
 func newTagsInputField() *tagsInputField {
 	t := &tagsInputField{}
-	t.InputField = newInputField(TagsLabel, t.complete, t.completed)
+	t.InputField = newInputField(TagsLabel, t.complete, t.completed, t.onChange)
 	t.tags = service.ListTags()
 	t.compList = []string{}
 	t.changed = true
@@ -90,10 +89,14 @@ func newTagsInputField() *tagsInputField {
 }
 
 func (t *tagsInputField) complete(input string) []string {
+	keyword := t.GetKeywords(input)
+	if keyword == "" {
+		return []string{}
+	}
+
 	if t.changed {
 		t.compList = []string{}
 		for _, tags := range t.tags {
-			keyword := t.GetKeywords()
 			if strings.HasPrefix(strings.ToLower(tags), strings.ToLower(keyword)) {
 				t.compList = append(t.compList, tags)
 			}
@@ -113,38 +116,42 @@ func (t *tagsInputField) completed(text string, index int, source int) bool {
 		tags = tags[:len(tags)-1]
 	}
 	tags = append(tags, text)
+	t.SetText(strings.Join(tags, " "))
 
 	switch source {
 	case tview.AutocompletedNavigate:
 		t.changed = false
 		return false
 	case tview.AutocompletedEnter:
-		t.SetText(strings.Join(tags, " "))
-		t.changed = true
+		t.changed = false
 		return true
 	case tview.AutocompletedTab:
+		t.changed = false
 		return true
 	default:
 		return true
 	}
 }
 
-func (t *tagsInputField) GetKeywords() string {
-	tags := strings.Fields(t.GetText())
-	r := []rune(tags[len(tags)-1])
-	if len(tags) == 0 || unicode.IsSpace(r[len(r)-1]) {
+func (t *tagsInputField) onChange(text string) {
+	t.changed = true
+}
+
+func (t *tagsInputField) GetKeywords(content string) string {
+	if len(content) == 0 || content[len(content)-1] == ' ' {
 		return ""
 	}
-	if len(tags) == 1 {
-		return tags[0]
+	tags := strings.Fields(content)
+	if len(tags) > 0 {
+		return tags[len(tags)-1]
 	}
-
-	return tags[len(tags)-1]
+	return ""
 }
 
 func newInputField(label string,
 	complete func(string) []string,
-	completed func(text string, index int, source int) bool) *tview.InputField {
+	completed func(string, int, int) bool,
+	onchanged func(string)) *tview.InputField {
 	input := tview.NewInputField().
 		SetLabel(label).
 		SetFieldWidth(0).
@@ -152,6 +159,10 @@ func newInputField(label string,
 		SetAutocompleteFunc(complete)
 	if completed != nil {
 		input.SetAutocompletedFunc(completed)
+	}
+
+	if onchanged != nil {
+		input.SetChangedFunc(onchanged)
 	}
 
 	input.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {

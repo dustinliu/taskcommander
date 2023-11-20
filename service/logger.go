@@ -10,7 +10,6 @@ import (
 
 var logger *zap.SugaredLogger
 
-// TODO different log for development and production?
 func init() {
 	env := os.Getenv("TC_RUNTIME_ENV")
 	log.Print("env: ", env)

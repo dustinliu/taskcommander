@@ -3,6 +3,7 @@ package view
 import (
 	"testing"
 
+	"github.com/rivo/tview"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -17,15 +18,29 @@ func TestTaskFormTestSuite(t *testing.T) {
 func (suite *TaskFormTestSuite) TestGetKeyword() {
 	t := newTagsInputField()
 
-	t.SetText("abc")
-	suite.Equal("abc", t.GetKeywords())
+	suite.Equal("abc", t.GetKeywords("abc"))
+	suite.Equal("def", t.GetKeywords("abc def"))
+	suite.Equal("def", t.GetKeywords("abc   def"))
+	suite.Equal("ghi", t.GetKeywords("abc   def ghi"))
+	suite.Equal("", t.GetKeywords("abc   def ghi "))
+}
 
-	t.SetText("abc def")
-	suite.Equal("def", t.GetKeywords())
+func (suite *TaskFormTestSuite) TestComplete() {
+	t := newTagsInputField()
+	t.compList = []string{"test1", "test2", "tag1", "tag2"}
 
-	t.SetText("abc   def")
-	suite.Equal("def", t.GetKeywords())
+	suite.Equal([]string{"test1", "test2", "tag1", "tag2"}, t.complete("t"))
+	suite.Equal([]string{"test1", "test2"}, t.complete("te"))
+	suite.Equal([]string{"tag1", "tag2"}, t.complete("ta"))
+	suite.Equal([]string{}, t.complete("test1 "))
+	suite.Equal([]string{}, t.complete("test1 tag2 "))
+}
 
-	t.SetText("abc def ghi")
-	suite.Equal("ghi", t.GetKeywords())
+func (suite *TaskFormTestSuite) TestCompleted() {
+	t := newTagsInputField()
+	t.compList = []string{"test1", "test2", "tag1", "tag2"}
+
+	t.SetText("te")
+	suite.False(t.completed("test1", 0, tview.AutocompletedNavigate))
+	suite.Equal("test1", t.GetText())
 }
