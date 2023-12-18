@@ -10,6 +10,7 @@ import (
 
 var logger *zap.SugaredLogger
 
+// TODO: create log directory if not exist
 func init() {
 	env := os.Getenv("TC_RUNTIME_ENV")
 	log.Print("env: ", env)

@@ -13,5 +13,5 @@ func newMessageLine() *messageLine {
 }
 
 func (l *messageLine) setText(text string) {
-	l.TextView.SetText(text)
+	l.SetText(text)
 }

@@ -9,7 +9,7 @@ import (
 var config *Config
 
 const (
-	dataLocation = "data.location"
+	dataLocationKey = "data.location"
 )
 
 func init() {
@@ -21,8 +21,8 @@ func init() {
 
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
-		if strings.Contains(line, dataLocation) {
-			str, _ := strings.CutPrefix(line, dataLocation)
+		if strings.Contains(line, dataLocationKey) {
+			str, _ := strings.CutPrefix(line, dataLocationKey)
 			config.Data_location = strings.TrimSpace(str)
 		}
 	}

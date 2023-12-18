@@ -22,7 +22,7 @@ type taskForm struct {
 	tags     []string
 }
 
-func newTaskForm(task *service.Task, onSave func(*service.Task), onCancel func()) *taskForm {
+func newTaskForm(_ *service.Task, onSave func(*service.Task), onCancel func()) *taskForm {
 	form := &taskForm{
 		tview.NewForm(),
 		service.ListProjects(),
@@ -32,7 +32,7 @@ func newTaskForm(task *service.Task, onSave func(*service.Task), onCancel func()
 	save := func() {
 		task := &service.Task{
 			Description: form.GetFormItemByLabel(DescLabel).(*tview.InputField).GetText(),
-			Project:     form.GetFormItemByLabel(ProjectLabel).(*tview.InputField).GetText(),
+			Project:     form.GetFormItemByLabel(ProjectLabel).(*projectInputField).GetText(),
 		}
 		onSave(task)
 	}
@@ -151,7 +151,8 @@ func (t *tagsInputField) GetKeywords(content string) string {
 func newInputField(label string,
 	complete func(string) []string,
 	completed func(string, int, int) bool,
-	onchanged func(string)) *tview.InputField {
+	onchanged func(string),
+) *tview.InputField {
 	input := tview.NewInputField().
 		SetLabel(label).
 		SetFieldWidth(0).

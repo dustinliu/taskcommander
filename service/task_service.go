@@ -108,9 +108,8 @@ func dump() []Task {
 }
 
 func execCmd(cmd []string) ([]Task, error) {
-	var output []byte
-	var err error
-	if output, err = Taskwarrior(cmd...); err != nil {
+	output, err := Taskwarrior(cmd...)
+	if err != nil {
 		return nil, err
 	}
 

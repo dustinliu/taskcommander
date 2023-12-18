@@ -21,7 +21,7 @@ func newCategoryPannel() *categoryPannel {
 		SetCellSimple(int(service.Someday), 0, "Someday").
 		SetCellSimple(int(service.Focus), 0, "Focus").
 		Select(int(service.Next), 0).
-		SetSelectionChangedFunc(func(row, colum int) {
+		SetSelectionChangedFunc(func(row, _ int) {
 			service.Events <- service.NewEventCategoryChange(service.Category(row))
 		})
 
