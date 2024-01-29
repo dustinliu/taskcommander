@@ -42,7 +42,8 @@ func NewTUI() *TUI {
 func newMainWin(cat *categoryPannel,
 	task *taskPannel,
 	info *infoPannel,
-	msg *messageLine) *tview.Flex {
+	msg *messageLine,
+) *tview.Flex {
 	flex := tview.NewFlex().
 		AddItem(cat, 0, 1, true).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
@@ -66,12 +67,13 @@ func (tui *TUI) inputHandler(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyTab:
 			tui.ChangeFocus()
+			// TODO: refactor event
 		case tcell.KeyEsc:
-			service.Events <- service.NewEventQuit()
+			// service.Events <- service.NewEventQuit()
 		case tcell.KeyRune:
 			switch event.Rune() {
 			case 'q':
-				service.Events <- service.NewEventQuit()
+				// service.Events <- service.NewEventQuit()
 			case 'a':
 				tui.OpenTaskForm(nil)
 			}
@@ -80,9 +82,10 @@ func (tui *TUI) inputHandler(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-func (tui *TUI) OpenTaskForm(task *service.Task) {
-	onSave := func(task *service.Task) {
-		service.Events <- service.NewEventAddTask(*task)
+func (tui *TUI) OpenTaskForm(task service.Task) {
+	onSave := func(task service.Task) {
+		// TODO: refactor event
+		// service.Events <- service.NewEventAddTask(*task)
 		tui.pages.RemovePage(modalLabel)
 	}
 
@@ -90,8 +93,9 @@ func (tui *TUI) OpenTaskForm(task *service.Task) {
 		tui.pages.RemovePage(modalLabel)
 	}
 
+	// TODO: refactor service
 	tui.pages.AddPage(modalLabel,
-		newModal(newTaskForm(task, onSave, onCancel), 60, 35),
+		newModal(newTaskForm(task, []string{}, []string{}, onSave, onCancel), 60, 35),
 		true, true)
 }
 
@@ -103,7 +107,7 @@ func (tui *TUI) SetTaskList(tasks []service.Task) {
 	tui.taskPannel.setTasks(tasks)
 }
 
-func (tui *TUI) SetTaskInfo(task *service.Task) {
+func (tui *TUI) SetTaskInfo(task service.Task) {
 	tui.infoPannel.SetTask(task)
 }
 

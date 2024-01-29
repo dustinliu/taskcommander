@@ -1,8 +1,6 @@
 package view
 
 import (
-	"strconv"
-
 	"github.com/dustinliu/taskcommander/service"
 	"github.com/rivo/tview"
 )
@@ -25,35 +23,29 @@ func newInfoPannel() *infoPannel {
 	return pannel
 }
 
-func (p *infoPannel) SetTask(task *service.Task) {
+func (p *infoPannel) SetTask(task service.Task) {
 	if task == nil {
 		return
 	}
 	p.Clear()
 
 	row := 0
-	p.SetCellSimple(row, 0, "Id").SetCellSimple(0, 1, strconv.Itoa(task.Id))
+	p.SetCellSimple(row, 0, "Id").SetCellSimple(0, 1, task.GetId())
 
 	row++
-	p.SetCellSimple(row, 0, "Description").SetCellSimple(row, 1, task.Description)
+	p.SetCellSimple(row, 0, "Description").SetCellSimple(row, 1, task.GetTitle())
 
-	if len(task.Tags) > 0 {
+	if len(task.GetTags()) > 0 {
 		row++
 		tags := ""
-		for _, tag := range task.Tags {
+		for _, tag := range task.GetTags() {
 			tags += tag + " "
 		}
 		p.SetCellSimple(row, 0, "Tags").SetCellSimple(row, 1, tags)
 	}
 
-	if task.Project != "" {
+	if task.GetProject() != "" {
 		row++
-		p.SetCellSimple(row, 0, "Project").SetCellSimple(row, 1, task.Project)
+		p.SetCellSimple(row, 0, "Project").SetCellSimple(row, 1, task.GetProject())
 	}
-
-	row++
-	p.SetCellSimple(row, 0, "UpdateAt").SetCellSimple(row, 1, task.UpdatedAt.Format("2006-01-02 15:04:05"))
-
-	row++
-	p.SetCellSimple(row, 0, "CreateAt").SetCellSimple(row, 1, task.CreatedAt.Format("2006-01-02 15:04:05"))
 }

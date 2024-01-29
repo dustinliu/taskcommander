@@ -1,110 +1,105 @@
 package controller
 
 import (
-	"sync"
-
+	"github.com/dustinliu/taskcommander/gtask"
+	"github.com/dustinliu/taskcommander/logger"
 	"github.com/dustinliu/taskcommander/service"
 	"github.com/dustinliu/taskcommander/view"
 	"github.com/fsnotify/fsnotify"
 	"github.com/gdamore/tcell/v2"
 )
 
-var app *Application
-var once sync.Once
-
 type Application struct {
-	tui *view.TUI
+	tui     *view.TUI
+	service service.TaskService
 }
 
-func GetApplication() *Application {
-	once.Do(func() {
-		app = &Application{
-			tui: view.NewTUI(),
-		}
-	})
+func NewApplication() *Application {
+	s, err := gtask.NewGoogleTaskService()
+	if err != nil {
+		panic(err)
+	}
+	app := &Application{
+		tui:     view.NewTUI(),
+		service: s,
+	}
 
 	return app
 }
 
+// TODO: refactor event
 func (app *Application) Run() error {
 	go app.handlerEvent()
-	service.Events <- service.NewEventCategoryChange(service.Next)
+	// service.Events <- service.NewEventCategoryChange(service.Next)
 
-	service.GetLogger().Info("======================= application started ==================")
+	logger.GetLogger().Info("======================= application started ==================")
 	return app.tui.Run()
 }
 
 func (app *Application) Stop() {
 	app.tui.Stop()
-	service.GetLogger().Info("======================= application stopped ==================")
+	logger.GetLogger().Info("======================= application stopped ==================")
 }
 
 func (app *Application) handlerEvent() {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		app.tui.PrintMessage(err.Error())
-	}
-	defer watcher.Close()
-	watcher.Add(GetConfig().Data_location)
-
+	// TODO: refactor event
 	for {
 		select {
-		case event := <-service.Events:
-			app.handlerViewEvent(event)
-		case event := <-watcher.Events:
-			app.handleWatcherEvent(event)
-		case err := <-watcher.Errors:
-			service.GetLogger().Debug("watcher error: ", err)
-			app.tui.PrintMessage(err.Error())
+		// case event := <-service.Events:
+		// app.handlerViewEvent(event)
 		}
 	}
 }
 
+// TODO: refactor event
 func (app *Application) handlerViewEvent(event tcell.Event) {
-	service.GetLogger().Debug("view event received: ", event)
-	switch event := event.(type) {
-	case service.EventCategoryChange:
-		app.tui.QueueUpdateDraw(func() { app.categoryChanged(event.Category) })
-	case service.EventTaskChange:
-		app.tui.QueueUpdateDraw(func() { app.taskChanged(event.Task) })
-	case service.EventQuit:
-		app.Stop()
-	case service.EventAddTask:
-		app.tui.QueueUpdateDraw(func() { app.addTask(event.Task) })
-	}
+	logger.GetLogger().Debug("view event received: ", event)
+	//switch event := event.(type) {
+	// case service.EventCategoryChange:
+	// app.tui.QueueUpdateDraw(func() { app.categoryChanged(event.Category) })
+	// case service.EventTaskChange:
+	// app.tui.QueueUpdateDraw(func() { app.taskChanged(event.Task) })
+	// case service.EventQuit:
+	// app.Stop()
+	// case service.EventAddTask:
+	// app.tui.QueueUpdateDraw(func() { app.addTask(event.Task) })
+	//}
 }
 
 func (app *Application) handleWatcherEvent(event fsnotify.Event) {
-	service.GetLogger().Debug("watcher event received: ", event)
+	logger.GetLogger().Debug("watcher event received: ", event)
 	switch event.Op {
 	case fsnotify.Write:
 		app.tui.QueueUpdateDraw(func() { app.refresh() })
 	}
 }
 
+// TODO: refactor category
 func (app *Application) addTask(task service.Task) {
-	task.Category = app.tui.GetCurrentCategory()
-	if err := service.AddTask(&task); err != nil {
+	// task.Category = app.tui.GetCurrentCategory()
+	if err := app.service.AddTask(task); err != nil {
 		app.tui.PrintMessage(err.Error())
-		service.GetLogger().Error(err.Error())
+		logger.GetLogger().Error(err.Error())
 		return
 	}
 }
 
-func (app *Application) categoryChanged(cat service.Category) {
-	tasks, err := service.ListTasksByCategory(cat)
-	if err != nil {
-		app.tui.PrintMessage(err.Error())
-		service.GetLogger().Error(err.Error())
-		return
-	}
-	app.tui.SetTaskList(tasks)
-}
+// TODO: refactor cagegory
+//func (app *Application) categoryChanged(cat service.Category) {
+//tasks, err := service.ListTasksByCategory(cat)
+//if err != nil {
+//app.tui.PrintMessage(err.Error())
+//service.GetLogger().Error(err.Error())
+//return
+//}
+//app.tui.SetTaskList(tasks)
+//}
 
 func (app *Application) taskChanged(task service.Task) {
-	app.tui.SetTaskInfo(&task)
+	app.tui.SetTaskInfo(task)
 }
 
+// TODO*: refactor cagegory
 func (app *Application) refresh() {
-	app.categoryChanged(app.tui.GetCurrentCategory())
+	// app.categoryChanged(app.tui.GetCurrentCategory())
 }

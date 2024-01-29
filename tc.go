@@ -4,12 +4,12 @@ import (
 	"os"
 
 	"github.com/dustinliu/taskcommander/controller"
-	"github.com/dustinliu/taskcommander/service"
+	"github.com/dustinliu/taskcommander/logger"
 )
 
 func main() {
-	if err := controller.GetApplication().Run(); err != nil {
-		service.GetLogger().Error(err.Error())
+	if err := controller.NewApplication().Run(); err != nil {
+		logger.GetLogger().Error(err.Error())
 		os.Exit(1)
 	}
 }

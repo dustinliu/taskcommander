@@ -19,7 +19,8 @@ func newTaskPannel() *taskPannel {
 	table.SetSelectionChangedFunc(func(row, colum int) {
 		t := table.GetCell(row, colum).GetReference()
 		if t != nil {
-			service.Events <- service.NewEventTaskChange(t.(service.Task))
+			// TODO: refactor category
+			// service.Events <- service.NewEventTaskChange(t.(service.Task))
 		}
 	})
 
@@ -31,7 +32,7 @@ func newTaskPannel() *taskPannel {
 func (p *taskPannel) setTasks(tasks []service.Task) {
 	p.Clear()
 	for i, task := range tasks {
-		p.SetCell(i, 0, tview.NewTableCell(task.Description).SetReference(task))
+		p.SetCell(i, 0, tview.NewTableCell(task.GetTitle()).SetReference(task))
 	}
 	p.Select(0, 0)
 }

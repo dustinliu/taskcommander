@@ -1,4 +1,4 @@
-package service
+package warrior
 
 import "os/exec"
 

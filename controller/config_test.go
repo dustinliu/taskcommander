@@ -1,19 +1,18 @@
 package controller
 
 import (
+	"os"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
 )
 
-type ConfigTestSuite struct {
-	suite.Suite
-}
+func TestGetConfig(t *testing.T) {
+	os.Setenv("TC_RUNTIME_ENV", "dev")
+	defer os.Unsetenv("TC_RUNTIME_ENV")
 
-func TestConfigTestSuite(t *testing.T) {
-	suite.Run(t, new(ConfigTestSuite))
-}
-
-func (suite *ConfigTestSuite) TestDataLocation() {
-	suite.T().Log("[" + config.Data_location + "]")
+	config := GetConfig()
+	assert.Equal(t, EnvDev, config.Env)
+	assert.Equal(t, "gtask", config.Backend)
+	assert.Equal(t, "/taskcommander/google_service.json", config.Gtask.CredentialFile)
 }

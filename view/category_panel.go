@@ -16,13 +16,14 @@ func newCategoryPannel() *categoryPannel {
 		SetFocusFunc(func() { table.SetBorderStyle(focusStyle) }).
 		SetBlurFunc(func() { table.SetBorderStyle(blurStyle) })
 
-	table.SetCellSimple(int(service.Inbox), 0, "Inbox").
-		SetCellSimple(int(service.Next), 0, "Next").
-		SetCellSimple(int(service.Someday), 0, "Someday").
-		SetCellSimple(int(service.Focus), 0, "Focus").
-		Select(int(service.Next), 0).
+	table.SetCellSimple(int(service.CategoryInbox), 0, "Inbox").
+		SetCellSimple(int(service.CategoryNext), 0, "Next").
+		SetCellSimple(int(service.CategorySomeday), 0, "Someday").
+		SetCellSimple(int(service.CategoryFocus), 0, "Focus").
+		Select(int(service.CategoryNext), 0).
+		// TODO: refactor category
 		SetSelectionChangedFunc(func(row, _ int) {
-			service.Events <- service.NewEventCategoryChange(service.Category(row))
+			// service.Events <- service.NewEventCategoryChange(service.Category(row))
 		})
 
 	pannel = &categoryPannel{

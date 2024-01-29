@@ -22,24 +22,28 @@ type taskForm struct {
 	tags     []string
 }
 
-func newTaskForm(_ *service.Task, onSave func(*service.Task), onCancel func()) *taskForm {
+func newTaskForm(
+	task service.Task,
+	projects []string,
+	tags []string,
+	onSave func(service.Task),
+	onCancel func(),
+) *taskForm {
 	form := &taskForm{
 		tview.NewForm(),
-		service.ListProjects(),
-		service.ListTags(),
+		projects,
+		tags,
 	}
 
 	save := func() {
-		task := &service.Task{
-			Description: form.GetFormItemByLabel(DescLabel).(*tview.InputField).GetText(),
-			Project:     form.GetFormItemByLabel(ProjectLabel).(*projectInputField).GetText(),
-		}
+		task := task.SetTitle(form.GetFormItemByLabel(DescLabel).(*tview.InputField).GetText()).
+			SetProject(form.GetFormItemByLabel(ProjectLabel).(*projectInputField).GetText())
 		onSave(task)
 	}
 
 	form.AddInputField(DescLabel, "", 0, nil, nil).
-		AddFormItem(newProjectInputField()).
-		AddFormItem(newTagsInputField()).
+		AddFormItem(newProjectInputField(projects)).
+		AddFormItem(newTagsInputField(tags)).
 		AddTextArea(Notelabel, "", 0, 0, 0, nil).
 		AddButton("Save", save).AddButton("Cancel", onCancel).
 		SetCancelFunc(onCancel).
@@ -53,10 +57,10 @@ type projectInputField struct {
 	projects []string
 }
 
-func newProjectInputField() *projectInputField {
+func newProjectInputField(projects []string) *projectInputField {
 	p := &projectInputField{}
 	p.InputField = newInputField(ProjectLabel, p.comp, nil, nil)
-	p.projects = service.ListProjects()
+	p.projects = projects
 
 	return p
 }
@@ -78,10 +82,10 @@ type tagsInputField struct {
 	changed  bool
 }
 
-func newTagsInputField() *tagsInputField {
+func newTagsInputField(tags []string) *tagsInputField {
 	t := &tagsInputField{}
 	t.InputField = newInputField(TagsLabel, t.complete, t.completed, t.onChange)
-	t.tags = service.ListTags()
+	t.tags = tags
 	t.compList = []string{}
 	t.changed = true
 

@@ -1,4 +1,4 @@
-package service
+package logger
 
 import (
 	"log"
@@ -17,7 +17,7 @@ func init() {
 	var logPath string
 	switch env {
 	case "dev":
-		logPath = "./tc.log"
+		logPath = "/tmp/tc.log"
 	default:
 		logPath = xdg.StateHome + "/taskcommander/tc.log"
 	}

@@ -1,0 +1,4 @@
+backend = "gtask" # gtask, taskwarrior
+
+[gtask]
+credential_file = "/taskcommander/google_service.json"

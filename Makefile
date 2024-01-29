@@ -20,6 +20,8 @@ else
 	md5 := md5sum
 endif
 
+export TC_RUNTIME_ENV=dev
+
 PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 
 build: generate $(PLATFORMS)
@@ -38,7 +40,7 @@ $(PLATFORMS):
 
 debug: generate
 	@echo building debug version...
-	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(build_dir)/$(app) 
+	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(build_dir)/$(app)
 	@$(build_dir)/$(app)
 
 vet: generate
