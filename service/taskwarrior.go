@@ -1,4 +1,4 @@
-package warrior
+package service
 
 import "os/exec"
 
@@ -97,3 +97,8 @@ func init() {
 
 //return tasks, nil
 //}
+
+func Taskwarrior(args ...string) ([]byte, error) {
+	command := exec.Command(taskCmd, args...)
+	return command.Output()
+}

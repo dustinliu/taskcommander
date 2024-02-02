@@ -23,3 +23,5 @@ tc.log
 .vscode/
 build/
 dist/
+taskcommander
+tc

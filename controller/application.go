@@ -1,105 +1,51 @@
 package controller
 
 import (
-	"github.com/dustinliu/taskcommander/gtask"
-	"github.com/dustinliu/taskcommander/logger"
+	"fmt"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"github.com/dustinliu/taskcommander/core"
 	"github.com/dustinliu/taskcommander/service"
 	"github.com/dustinliu/taskcommander/view"
-	"github.com/fsnotify/fsnotify"
-	"github.com/gdamore/tcell/v2"
 )
 
+var categories = []string{"Inbox", "Next", "Someday", "Focus"}
+
 type Application struct {
-	tui     *view.TUI
+	fyne.App
 	service service.TaskService
+	config  core.Config
 }
 
-func NewApplication() *Application {
-	s, err := gtask.NewGoogleTaskService()
+func NewApplication() (*Application, error) {
+	s, err := service.NewService()
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
+
 	app := &Application{
-		tui:     view.NewTUI(),
+		App:     app.New(),
 		service: s,
+		config:  core.GetConfig(),
 	}
 
-	return app
+	app.Settings().SetTheme(view.NewMyTheme())
+
+	return app, nil
 }
 
-// TODO: refactor event
-func (app *Application) Run() error {
-	go app.handlerEvent()
-	// service.Events <- service.NewEventCategoryChange(service.Next)
+func (app *Application) Run() {
+	win := app.NewWindow(core.AppName)
+	win.SetMaster()
+	win.Resize(fyne.NewSize(800, 600))
 
-	logger.GetLogger().Info("======================= application started ==================")
-	return app.tui.Run()
-}
+	left := container.NewGridWithRows(1, view.NewCategoryList(categories))
+	right := container.NewVSplit(view.NewTaskList(), view.NewTaskList())
+	root := container.NewHSplit(left, right)
+	root.SetOffset(0.2)
+	win.SetContent(root)
 
-func (app *Application) Stop() {
-	app.tui.Stop()
-	logger.GetLogger().Info("======================= application stopped ==================")
-}
-
-func (app *Application) handlerEvent() {
-	// TODO: refactor event
-	for {
-		select {
-		// case event := <-service.Events:
-		// app.handlerViewEvent(event)
-		}
-	}
-}
-
-// TODO: refactor event
-func (app *Application) handlerViewEvent(event tcell.Event) {
-	logger.GetLogger().Debug("view event received: ", event)
-	//switch event := event.(type) {
-	// case service.EventCategoryChange:
-	// app.tui.QueueUpdateDraw(func() { app.categoryChanged(event.Category) })
-	// case service.EventTaskChange:
-	// app.tui.QueueUpdateDraw(func() { app.taskChanged(event.Task) })
-	// case service.EventQuit:
-	// app.Stop()
-	// case service.EventAddTask:
-	// app.tui.QueueUpdateDraw(func() { app.addTask(event.Task) })
-	//}
-}
-
-func (app *Application) handleWatcherEvent(event fsnotify.Event) {
-	logger.GetLogger().Debug("watcher event received: ", event)
-	switch event.Op {
-	case fsnotify.Write:
-		app.tui.QueueUpdateDraw(func() { app.refresh() })
-	}
-}
-
-// TODO: refactor category
-func (app *Application) addTask(task service.Task) {
-	// task.Category = app.tui.GetCurrentCategory()
-	if err := app.service.AddTask(task); err != nil {
-		app.tui.PrintMessage(err.Error())
-		logger.GetLogger().Error(err.Error())
-		return
-	}
-}
-
-// TODO: refactor cagegory
-//func (app *Application) categoryChanged(cat service.Category) {
-//tasks, err := service.ListTasksByCategory(cat)
-//if err != nil {
-//app.tui.PrintMessage(err.Error())
-//service.GetLogger().Error(err.Error())
-//return
-//}
-//app.tui.SetTaskList(tasks)
-//}
-
-func (app *Application) taskChanged(task service.Task) {
-	app.tui.SetTaskInfo(task)
-}
-
-// TODO*: refactor cagegory
-func (app *Application) refresh() {
-	// app.categoryChanged(app.tui.GetCurrentCategory())
+	win.ShowAndRun()
 }

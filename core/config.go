@@ -1,4 +1,4 @@
-package controller
+package core
 
 import (
 	"fmt"
@@ -16,28 +16,35 @@ import (
 type Env uint8
 
 const (
+	EnvKey = "TC_RUNTIME_ENV"
+
 	EnvDev Env = iota
 	EnvProd
+
+	backendKey             = "backend"
+	gtaskCredentialFileKey = "gtask.credential_file"
+	DebugKey               = "debug"
 )
 
 var (
-	once   sync.Once
-	config Config
+	configOnce sync.Once
+	config     Config
 )
 
-type GtaskConfig struct {
+type gtaskConfig struct {
 	CredentialFile string
 }
 
 type Config struct {
 	Env     Env
+	Debug   bool
 	Backend string
-	Gtask   GtaskConfig
+	Gtask   gtaskConfig
 }
 
-func GetConfig() Config {
-	once.Do(func() {
-		switch os.Getenv("TC_RUNTIME_ENV") {
+func InitConfig() {
+	configOnce.Do(func() {
+		switch os.Getenv(EnvKey) {
 		case "dev":
 			config.Env = EnvDev
 		default:
@@ -53,22 +60,27 @@ func GetConfig() Config {
 			}
 			viper.AddConfigPath(filepath.Join(root, "test"))
 		} else {
-			viper.AddConfigPath(filepath.Join(xdg.ConfigHome, "taskcommander"))
-			viper.AddConfigPath("$HOME/.taskcommander")
+			viper.AddConfigPath(filepath.Join(xdg.ConfigHome, AppName))
 		}
 		err := viper.ReadInConfig()
 		if err != nil {
 			panic(fmt.Errorf("fatal error config file: %w", err))
 		}
 
-		config.Backend = viper.GetString("backend")
-		f, err := homedir.Expand(viper.GetString("gtask.credential_file"))
+		config.Backend = viper.GetString(backendKey)
+
+		f, err := homedir.Expand(viper.GetString(gtaskCredentialFileKey))
 		if err != nil {
 			panic(fmt.Errorf("failed to expand gtask.credential_file: %w", err))
 		}
 		config.Gtask.CredentialFile = f
-	})
 
+		config.Debug = viper.GetBool(DebugKey)
+	})
+}
+
+func GetConfig() Config {
+	InitConfig()
 	return config
 }
 

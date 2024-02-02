@@ -61,9 +61,25 @@ type Task interface {
 	SetCompleted(time.Time) Task
 }
 
+func NewTask() Task {
+	return NewGoogleTask()
+}
+
 type TaskService interface {
-	AddTask(task Task) error
+	InitOauth2Needed() bool
+	GetOauthAuthUrl() string
+	WaitForAuthDone() error
+	Init() error
+	AddTask(task Task) (Task, error)
 	ListTasksByCategory(cat Category) ([]Task, error)
 	ListTags() ([]string, error)
 	ListProjects() ([]string, error)
+}
+
+func NewService() (TaskService, error) {
+	s, err := NewGoogleTaskService()
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
 }

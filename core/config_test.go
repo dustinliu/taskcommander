@@ -1,9 +1,11 @@
-package controller
+package core
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/adrg/xdg"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,5 +16,5 @@ func TestGetConfig(t *testing.T) {
 	config := GetConfig()
 	assert.Equal(t, EnvDev, config.Env)
 	assert.Equal(t, "gtask", config.Backend)
-	assert.Equal(t, "/taskcommander/google_service.json", config.Gtask.CredentialFile)
+	assert.Equal(t, filepath.Join(xdg.ConfigHome, AppName, "credential.json"), config.Gtask.CredentialFile)
 }

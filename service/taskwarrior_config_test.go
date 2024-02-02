@@ -1,4 +1,4 @@
-package warrior
+package service
 
 //type ConfigTestSuite struct {
 //suite.Suite

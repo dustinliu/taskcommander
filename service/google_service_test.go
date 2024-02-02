@@ -1,4 +1,4 @@
-package gtask
+package service
 
 import (
 	"testing"
@@ -11,6 +11,7 @@ func TestNewGoogleTaskService(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Nil(t, service.Init())
 	lists, err := service.getTaskLists()
 	assert.Nil(t, err)
 
