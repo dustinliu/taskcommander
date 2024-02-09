@@ -1,11 +1,7 @@
 package service
 
-import (
-	"time"
-)
-
 type (
-	Status   uint8
+	Status   int8
 	Category int8
 )
 
@@ -13,11 +9,16 @@ const (
 	StatusTodo Status = iota
 	StatusDone
 
-	CategoryNone  Category = -1
+	StatusInvalid Status = -1
+)
+
+const (
 	CategoryInbox Category = iota
 	CategoryNext
 	CategorySomeday
 	CategoryFocus
+
+	CategoryInvalid Category = -1
 )
 
 var categoryNames = []string{
@@ -42,27 +43,25 @@ func (c Category) Name() string {
 type Task interface {
 	GetId() string
 	GetTitle() string
-	SetTitle(title string) Task
-	GetNotes() string
-	SetNotes(notes string) Task
+	SetTitle(string) Task
+	GetNote() string
+	SetNote(string) Task
 	GetFocus() bool
-	SetFocus(focus bool) Task
+	SetFocus(bool) Task
 	GetStatus() Status
-	SetStatus(status Status) Task
+	SetStatus(Status) Task
 	GetProject() string
-	SetProject(project string) Task
+	SetProject(string) Task
 	GetTags() []string
-	SetTag(tag string) Task
+	SetTag(string) Task
 	GetCategory() Category
-	SetCategory(category Category) Task
-	GetDue() time.Time
-	SetDue(due time.Time) Task
-	GetCompleted() time.Time
-	SetCompleted(time.Time) Task
-}
-
-func NewTask() Task {
-	return NewGoogleTask()
+	SetCategory(Category) Task
+	GetDue() string // RFC3339
+	SetDue(string) Task
+	GetCompleted() string // RFC3339
+	SetCompleted(string) Task
+	GetUpdated() string // RFC3339
+	Error() error
 }
 
 type TaskService interface {
@@ -70,8 +69,9 @@ type TaskService interface {
 	GetOauthAuthUrl() string
 	WaitForAuthDone() error
 	Init() error
-	AddTask(task Task) (Task, error)
-	ListTasksByCategory(cat Category) ([]Task, error)
+	NewTask() Task
+	AddTask(Task) (Task, error)
+	ListTasks() ([]Task, error)
 	ListTags() ([]string, error)
 	ListProjects() ([]string, error)
 }

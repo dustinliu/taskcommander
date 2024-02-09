@@ -24,6 +24,9 @@ func NewApplication() (*Application, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
+	if err := s.Init(); err != nil {
+		return nil, fmt.Errorf("failed to init service: %w", err)
+	}
 
 	app := &Application{
 		App:     app.New(),

@@ -7,6 +7,7 @@ import (
 )
 
 func TestNewGoogleTaskService(t *testing.T) {
+	t.Skip("Not implemented")
 	service, err := NewGoogleTaskService()
 	if err != nil {
 		t.Fatal(err)

@@ -20,6 +20,11 @@ import (
 	tasks "google.golang.org/api/tasks/v1"
 )
 
+const (
+	client_id_key     = "TC_CLIENT_ID"
+	client_secret_key = "TC_CLIENT_SECRET"
+)
+
 var _ TaskService = (*GoogleTaskService)(nil)
 
 var taskLists = map[Category]*tasks.TaskList{
@@ -53,11 +58,22 @@ func NewGoogleTaskService() (*GoogleTaskService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read client secret file: %w", err)
 	}
-	oauthConfig, err := google.ConfigFromJSON(b, tasks.TasksScope)
+	s.oauthConfig, err = google.ConfigFromJSON(b, tasks.TasksScope)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse client secret file to config: %w", err)
 	}
-	s.oauthConfig = oauthConfig
+
+	client_id := os.Getenv(client_id_key)
+	if client_id == "" {
+		return nil, fmt.Errorf("client id not found, please set the environment variable %s", client_id_key)
+	}
+	s.oauthConfig.ClientID = client_id
+
+	secret := os.Getenv(client_secret_key)
+	if secret == "" {
+		return nil, fmt.Errorf("client secret not found, please set the environment variable %s", client_secret_key)
+	}
+	s.oauthConfig.ClientSecret = secret
 
 	return s, nil
 }
@@ -73,6 +89,48 @@ func (g *GoogleTaskService) Init() error {
 		return fmt.Errorf("failed to init task list: %w", err)
 	}
 	return nil
+}
+
+func (g *GoogleTaskService) NewTask() Task {
+	return newGoogleTask(&tasks.Task{})
+}
+
+func (g *GoogleTaskService) AddTask(task Task) (Task, error) {
+	category := task.GetCategory()
+	core.GetLogger().Debugf("add task to category: %s", category.Name())
+	gtask, err := task.(*googleTask).getGoogleTask()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get google task: %w", err)
+	}
+
+	t, err := g.service.Tasks.Insert(taskLists[category].Id, gtask).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to add task: %w", err)
+	}
+
+	return newGoogleTask(t), nil
+}
+
+func (g *GoogleTaskService) ListProjects() ([]string, error) {
+	return nil, nil
+}
+
+func (g *GoogleTaskService) ListTasks() ([]Task, error) {
+	tasks := []Task{}
+	for _, taskList := range taskLists {
+		gtasks, err := g.service.Tasks.List(taskList.Id).Do()
+		if err != nil {
+			return nil, fmt.Errorf("failed to list tasks: %w", err)
+		}
+		for _, gtask := range gtasks.Items {
+			tasks = append(tasks, newGoogleTask(gtask))
+		}
+	}
+	return tasks, nil
+}
+
+func (g *GoogleTaskService) ListTags() ([]string, error) {
+	return nil, nil
 }
 
 func (g *GoogleTaskService) InitOauth2Needed() bool {
@@ -136,27 +194,6 @@ func (g *GoogleTaskService) fetchOauthToken(authCode string) error {
 		return fmt.Errorf("failed to create service: %w", err)
 	}
 	return nil
-}
-
-func (g *GoogleTaskService) AddTask(task Task) (Task, error) {
-	//t := task.(*GoogleTask)
-	//if t, err = g.service.Tasks.Insert(t.Id, t.Task).Do(); err != nil {
-	//return fmt.Errorf("failed to add task: %w", err)
-	//}
-
-	return nil, nil
-}
-
-func (g *GoogleTaskService) ListProjects() ([]string, error) {
-	return nil, nil
-}
-
-func (g *GoogleTaskService) ListTasksByCategory(cat Category) ([]Task, error) {
-	return nil, nil
-}
-
-func (g *GoogleTaskService) ListTags() ([]string, error) {
-	return nil, nil
 }
 
 func (g *GoogleTaskService) getTaskLists() ([]*tasks.TaskList, error) {

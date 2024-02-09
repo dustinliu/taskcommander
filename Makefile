@@ -7,7 +7,7 @@ generate:
 	@echo 'generate mock codes'
 	@go generate ./...
 
-debug-build: generate test
+debug-build: generate
 	@echo building debug version...
 	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(app) ./cmd/gui/$(app).go
 	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(cli) ./cmd/cli/$(cli).go

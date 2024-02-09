@@ -42,6 +42,7 @@ type Config struct {
 	Gtask   gtaskConfig
 }
 
+// TODO: remove panic
 func InitConfig() {
 	configOnce.Do(func() {
 		switch os.Getenv(EnvKey) {

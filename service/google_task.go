@@ -1,132 +1,171 @@
 package service
 
 import (
-	"time"
+	"encoding/json"
+	"fmt"
+	"strings"
 
 	tasks "google.golang.org/api/tasks/v1"
 )
 
-var _ Task = (*GoogleTask)(nil)
+const (
+	note_seperator = "\n--- TASK_SEPERATOR ---\n"
 
-type GoogleTask struct {
+	gtaskStatusDone    = "completed"
+	gtaskStatusTodo    = "needsAction"
+	gtaskStatusInvalid = "invalid"
+)
+
+type internalStatus struct {
+	Focus    bool     `json:"focus"`
+	Project  string   `json:"project"`
+	Tags     []string `json:"tags"`
+	Category Category `json:"category"`
+}
+
+type googleTask struct {
 	*tasks.Task
-	focus    bool
-	project  string
-	tags     []string
-	category Category
+	note string
+	internalStatus
+	err error
 }
 
-func NewGoogleTask() *GoogleTask {
-	return &GoogleTask{
-		Task:     &tasks.Task{},
-		tags:     []string{},
-		category: CategoryInbox,
+func newGoogleTask(t *tasks.Task) *googleTask {
+	task := &googleTask{Task: t}
+
+	igtask := internalStatus{Category: CategoryInbox}
+	strs := strings.Split(t.Notes, note_seperator)
+	task.note = strs[0]
+	if len(strs) > 1 {
+		if err := json.Unmarshal([]byte(strs[1]), &igtask); err != nil {
+			task.err = fmt.Errorf("failed to unmarshal internal status: %v", err)
+			return task
+		}
+		task.internalStatus = igtask
 	}
+
+	return task
 }
 
-func (t *GoogleTask) GetId() string {
+func (g *googleTask) getGoogleTask() (*tasks.Task, error) {
+	statusJson, err := json.Marshal(g.internalStatus)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal internal status: %v", err)
+	}
+
+	g.Notes = g.note + note_seperator + string(statusJson)
+
+	return g.Task, nil
+}
+
+func (t *googleTask) GetId() string {
 	return t.Id
 }
 
-func (t *GoogleTask) GetTitle() string {
+func (t *googleTask) GetTitle() string {
 	return t.Title
 }
 
-func (t *GoogleTask) SetTitle(title string) Task {
+func (t *googleTask) SetTitle(title string) Task {
 	t.Title = title
 	return t
 }
 
-func (t *GoogleTask) GetNotes() string {
-	return t.Notes
+func (t *googleTask) GetNote() string {
+	return t.note
 }
 
-func (t *GoogleTask) SetNotes(notes string) Task {
-	t.Notes = notes
+func (t *googleTask) SetNote(note string) Task {
+	t.note = note
 	return t
 }
 
-func (t *GoogleTask) GetFocus() bool {
-	return t.focus
+func (t *googleTask) GetFocus() bool {
+	return t.Focus
 }
 
-func (t *GoogleTask) SetFocus(focus bool) Task {
-	t.focus = focus
+func (t *googleTask) SetFocus(focus bool) Task {
+	t.Focus = focus
 	return t
 }
 
-func (t *GoogleTask) GetStatus() Status {
-	if t.Status == "completed" {
+func (t *googleTask) GetStatus() Status {
+	switch t.Status {
+	case gtaskStatusDone:
 		return StatusDone
-	} else {
+	case gtaskStatusTodo:
 		return StatusTodo
+	default:
+		return StatusInvalid
 	}
 }
 
-func (t *GoogleTask) SetStatus(status Status) Task {
-	if status == StatusDone {
-		t.Status = "completed"
-	} else {
-		t.Status = "needsAction"
+func (t *googleTask) SetStatus(status Status) Task {
+	switch status {
+	case StatusDone:
+		t.Status = gtaskStatusDone
+	case StatusTodo:
+		t.Status = gtaskStatusTodo
+	default:
+		t.Status = gtaskStatusInvalid
 	}
 
 	return t
 }
 
-func (t *GoogleTask) GetProject() string {
-	return t.project
+func (t *googleTask) GetProject() string {
+	return t.Project
 }
 
-func (t *GoogleTask) SetProject(project string) Task {
-	t.project = project
+func (t *googleTask) SetProject(project string) Task {
+	t.Project = project
 	return t
 }
 
-func (t *GoogleTask) GetTags() []string {
-	return t.tags
+func (t *googleTask) GetTags() []string {
+	return t.Tags
 }
 
-func (t *GoogleTask) SetTag(tag string) Task {
-	t.tags = append(t.tags, tag)
+func (t *googleTask) SetTag(tag string) Task {
+	t.Tags = append(t.Tags, tag)
 	return t
 }
 
-func (t *GoogleTask) GetCategory() Category {
-	return t.category
+func (t *googleTask) GetCategory() Category {
+	return Category(t.Category)
 }
 
-func (t *GoogleTask) SetCategory(category Category) Task {
-	t.category = category
+func (t *googleTask) SetCategory(category Category) Task {
+	t.Category = category
 	return t
 }
 
-func (t *GoogleTask) GetDue() time.Time {
-	due, err := time.Parse(time.RFC3339, t.Due)
-	if err != nil {
-		return time.Time{}
-	}
-	return due
+func (t *googleTask) GetDue() string {
+	return t.Due
 }
 
-func (t *GoogleTask) SetDue(due time.Time) Task {
-	t.Due = due.Format(time.RFC3339)
+func (t *googleTask) SetDue(due string) Task {
+	t.Due = due
 	return t
 }
 
-func (t *GoogleTask) GetCompleted() time.Time {
+func (t *googleTask) GetCompleted() string {
 	if t.Completed == nil {
-		return time.Time{}
+		return ""
 	}
 
-	c, err := time.Parse(time.RFC3339, *t.Completed)
-	if err != nil {
-		return time.Time{}
-	}
-	return c
+	return *t.Completed
 }
 
-func (t *GoogleTask) SetCompleted(comp time.Time) Task {
-	c := comp.Format(time.RFC3339)
+func (t *googleTask) SetCompleted(c string) Task {
 	t.Completed = &c
 	return t
+}
+
+func (t *googleTask) GetUpdated() string {
+	return t.Updated
+}
+
+func (t *googleTask) Error() error {
+	return t.err
 }
