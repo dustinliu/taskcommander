@@ -1,44 +1,8 @@
 package service
 
-type (
-	Status   int8
-	Category int8
+import (
+	"fmt"
 )
-
-const (
-	StatusTodo Status = iota
-	StatusDone
-
-	StatusInvalid Status = -1
-)
-
-const (
-	CategoryInbox Category = iota
-	CategoryNext
-	CategorySomeday
-	CategoryFocus
-
-	CategoryInvalid Category = -1
-)
-
-var categoryNames = []string{
-	"Inbox",
-	"Next",
-	"Someday",
-	"Focus",
-}
-
-func (c Category) IsValid() bool {
-	return c >= 0 && int(c) < len(categoryNames)
-}
-
-func (c Category) Name() string {
-	if !c.IsValid() {
-		return "Invalid"
-	}
-
-	return categoryNames[c]
-}
 
 type Task interface {
 	GetId() string
@@ -62,24 +26,23 @@ type Task interface {
 	SetCompleted(string) Task
 	GetUpdated() string // RFC3339
 	Error() error
+	String() string
+}
+
+func taskToString(t Task) string {
+	return fmt.Sprintf("------------------------------\n%T\nId: %s\nTitle: %s\nNote: %s\nStatus: %v\nProject: %s\nFocus: %t\nTags: %v\nCategory: %s\nDue: %s\nCompleted: %s\nUpdated: %s",
+		t, t.GetId(), t.GetTitle(), t.GetNote(), t.GetStatus().Name(), t.GetProject(), t.GetFocus(), t.GetTags(), t.GetCategory().Name(), t.GetDue(), t.GetCompleted(), t.GetUpdated())
 }
 
 type TaskService interface {
-	InitOauth2Needed() bool
-	GetOauthAuthUrl() string
-	WaitForAuthDone() error
-	Init() error
+	OAuth2(urlHandler func(string)) error
 	NewTask() Task
 	AddTask(Task) (Task, error)
-	ListTasks() ([]Task, error)
+	ListTodoTasks() ([]Task, error)
 	ListTags() ([]string, error)
 	ListProjects() ([]string, error)
 }
 
 func NewService() (TaskService, error) {
-	s, err := NewGoogleTaskService()
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
+	return NewGoogleTaskService()
 }

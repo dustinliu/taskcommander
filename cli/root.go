@@ -15,6 +15,22 @@ var (
 	once sync.Once
 )
 
+func init() {
+	rootCmd.PersistentFlags().BoolVarP(&core.Debug, "debug", "d", false, "debug mode")
+}
+
+var rootCmd = &cobra.Command{
+	Use:   "tc",
+	Short: "taskcommand cli tool",
+}
+
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
 func getService() service.TaskService {
 	once.Do(func() {
 		var err error
@@ -23,15 +39,8 @@ func getService() service.TaskService {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		if srv.InitOauth2Needed() {
-			authUrl := srv.GetOauthAuthUrl()
-			fmt.Printf("Please visit the following URL to authorize this application:\n%s\n", authUrl)
-			if err := srv.WaitForAuthDone(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-		}
-		if err := srv.Init(); err != nil {
+
+		if err := srv.OAuth2(showUrl); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -39,36 +48,6 @@ func getService() service.TaskService {
 	return srv
 }
 
-func init() {
-	rootCmd.PersistentFlags().BoolVarP(&core.Debug, "debug", "d", false, "debug mode")
-	cobra.OnInitialize(func() {
-		service, err := service.NewService()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if service.InitOauth2Needed() {
-			authUrl := service.GetOauthAuthUrl()
-			fmt.Printf("Please visit the following URL to authorize this application:\n%s\n", authUrl)
-			if err := service.WaitForAuthDone(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-		}
-	})
-}
-
-var rootCmd = &cobra.Command{
-	Use:   "tc",
-	Short: "taskcommand cli tool",
-	//Run: func(cmd *cobra.Command, args []string) {
-	//// Do Stuff Here
-	//},
-}
-
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+func showUrl(url string) {
+	fmt.Printf("Please visit the following URL to authorize this application:\n%s\n", url)
 }

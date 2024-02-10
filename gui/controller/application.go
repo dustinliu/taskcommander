@@ -5,50 +5,93 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
 	"github.com/dustinliu/taskcommander/core"
+	"github.com/dustinliu/taskcommander/event"
 	"github.com/dustinliu/taskcommander/gui/view"
 	"github.com/dustinliu/taskcommander/service"
 )
 
-var categories = []string{"Inbox", "Next", "Someday", "Focus"}
-
 type Application struct {
 	fyne.App
 	service service.TaskService
-	config  core.Config
+
+	mainWindow     fyne.Window
+	categoryPannel *view.CategoryPannel
+	taskPannel     *view.TaskPannel
 }
 
-func NewApplication() (*Application, error) {
-	s, err := service.NewService()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create service: %w", err)
-	}
-	if err := s.Init(); err != nil {
-		return nil, fmt.Errorf("failed to init service: %w", err)
-	}
-
+func NewApplication() *Application {
+	cat := view.NewCategoryPannel(service.Categories(), nil)
+	task := view.NewTaskPannel()
+	ap := app.New()
 	app := &Application{
-		App:     app.New(),
-		service: s,
-		config:  core.GetConfig(),
+		App:            ap,
+		categoryPannel: cat,
+		taskPannel:     task,
+		mainWindow:     view.NewMainWindow(ap, cat, task),
 	}
 
-	app.Settings().SetTheme(view.NewMyTheme())
+	lifecycle := app.Lifecycle()
+	lifecycle.SetOnStarted(app.init)
 
-	return app, nil
+	lifecycle.SetOnStopped(func() {
+		event.Wg.Wait()
+	})
+
+	app.Settings().SetTheme(view.DefaultTheme())
+
+	return app
 }
 
 func (app *Application) Run() {
-	win := app.NewWindow(core.AppName)
-	win.SetMaster()
-	win.Resize(fyne.NewSize(800, 600))
+	core.GetLogger().Infof("debug: %v\n", core.GetConfig().Debug)
+	event.ListenEvent(app.inputHandler)
+	app.mainWindow.ShowAndRun()
+}
 
-	left := container.NewGridWithRows(1, view.NewCategoryList(categories))
-	right := container.NewVSplit(view.NewTaskList(), view.NewTaskList())
-	root := container.NewHSplit(left, right)
-	root.SetOffset(0.2)
-	win.SetContent(root)
+func (app *Application) init() {
+	s, err := service.NewService()
+	if err != nil {
+		event.QueueEvent(event.NewEventError(err, true))
+		return
+	}
+	app.service = s
 
-	win.ShowAndRun()
+	// TODO: implement url handler
+	err = s.OAuth2(func(_ string) {
+		event.QueueEvent(event.NewEventError(err, true))
+	})
+	if err != nil {
+		event.QueueEvent(event.NewEventError(err, true))
+		return
+	}
+
+	app.categoryPannel.Select(0)
+}
+
+func (app *Application) inputHandler(e event.Event) event.Event {
+	switch e := e.(type) {
+	case event.EventCategoryChanged:
+		app.categoryChangeHandler(e.Category)
+		core.GetLogger().Debugf("category(%v) changed, get tasks\n", e.Category)
+	case event.EventError:
+		var onClose func()
+		if e.Fatal {
+			onClose = app.Quit
+		}
+		view.ShowError(fmt.Errorf("error: %w", e.Err), e.Fatal, onClose, app.mainWindow)
+	}
+
+	return e
+}
+
+// TODO: implement error handling
+func (app *Application) categoryChangeHandler(c service.Category) {
+	tasks, err := app.service.ListTodoTasks()
+	core.GetLogger().Debugf("tasks length: %d\n", len(tasks))
+	if err != nil {
+		view.ShowError(fmt.Errorf("failed to handle category change: %w", err), false, nil, app.mainWindow)
+		return
+	}
+	app.taskPannel.SetTasks(tasks)
 }

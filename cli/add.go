@@ -19,7 +19,7 @@ var addCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, argv []string) {
 		srv := getService()
 
-		task := srv.NewTask().SetTitle(argv[0]).SetCategory(service.CategorySomeday)
+		task := srv.NewTask().SetTitle(argv[0]).SetCategory(service.CategoryInbox)
 		task, err := srv.AddTask(task)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

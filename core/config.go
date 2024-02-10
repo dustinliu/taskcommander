@@ -59,7 +59,7 @@ func InitConfig() {
 			if err != nil {
 				panic(fmt.Errorf("failed to get project root: %w", err))
 			}
-			viper.AddConfigPath(filepath.Join(root, "test"))
+			viper.AddConfigPath(filepath.Join(root, "tests"))
 		} else {
 			viper.AddConfigPath(filepath.Join(xdg.ConfigHome, AppName))
 		}

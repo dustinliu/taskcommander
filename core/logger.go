@@ -24,7 +24,7 @@ func InitLogger() {
 		}
 
 		var config zap.Config
-		if Debug {
+		if GetConfig().Debug {
 			config = zap.NewDevelopmentConfig()
 			config.DisableCaller = false
 			config.DisableStacktrace = false

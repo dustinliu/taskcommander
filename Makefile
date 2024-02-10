@@ -7,20 +7,20 @@ generate:
 	@echo 'generate mock codes'
 	@go generate ./...
 
-debug-build: generate
+debug-build: generate test lint
 	@echo building debug version...
 	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(app) ./cmd/gui/$(app).go
 	@go build -gcflags="all=-N -l" -ldflags "-X main.version=`cat version`" -o $(cli) ./cmd/cli/$(cli).go
 
-run: generate
-	@go run cmd/taskcommander.go
+run: debug-build
+	@go run cmd/gui/taskcommander.go
 
 lint:
 	@golangci-lint run
 
 test: generate
 	@echo testing...
-	@go test -timeout 10s ./...
+	@go test -v -timeout 10s ./...
 	@echo
 
 clean:

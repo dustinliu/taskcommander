@@ -23,6 +23,9 @@ import (
 const (
 	client_id_key     = "TC_CLIENT_ID"
 	client_secret_key = "TC_CLIENT_SECRET"
+	client_id         = "50757396817-rfurg5f6dsdtag6dohrorqvkhtq39o48.apps.googleusercontent.com"
+
+	tokenFileName = "token.json"
 )
 
 var _ TaskService = (*GoogleTaskService)(nil)
@@ -34,61 +37,13 @@ var taskLists = map[Category]*tasks.TaskList{
 }
 
 type GoogleTaskService struct {
-	service *tasks.Service
-
-	tokenFile   string
-	oauthConfig *oauth2.Config
-
-	server   *http.Server
-	authChan chan error
+	srv *tasks.Service
 }
 
 func NewGoogleTaskService() (*GoogleTaskService, error) {
-	s := &GoogleTaskService{
-		server:   &http.Server{Addr: ":9873"},
-		authChan: make(chan error, 1),
-	}
-	tokenFile, err := xdg.StateFile(filepath.Join(core.AppName, "token.json"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to get token file path: %w", err)
-	}
-	s.tokenFile = tokenFile
-
-	b, err := os.ReadFile(core.GetConfig().Gtask.CredentialFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client secret file: %w", err)
-	}
-	s.oauthConfig, err = google.ConfigFromJSON(b, tasks.TasksScope)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse client secret file to config: %w", err)
-	}
-
-	client_id := os.Getenv(client_id_key)
-	if client_id == "" {
-		return nil, fmt.Errorf("client id not found, please set the environment variable %s", client_id_key)
-	}
-	s.oauthConfig.ClientID = client_id
-
-	secret := os.Getenv(client_secret_key)
-	if secret == "" {
-		return nil, fmt.Errorf("client secret not found, please set the environment variable %s", client_secret_key)
-	}
-	s.oauthConfig.ClientSecret = secret
+	s := &GoogleTaskService{}
 
 	return s, nil
-}
-
-func (g *GoogleTaskService) Init() error {
-	service, err := getService(g.oauthConfig, g.tokenFile)
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-	g.service = service
-
-	if err := g.ensureTaskListExist(); err != nil {
-		return fmt.Errorf("failed to init task list: %w", err)
-	}
-	return nil
 }
 
 func (g *GoogleTaskService) NewTask() Task {
@@ -103,7 +58,7 @@ func (g *GoogleTaskService) AddTask(task Task) (Task, error) {
 		return nil, fmt.Errorf("failed to get google task: %w", err)
 	}
 
-	t, err := g.service.Tasks.Insert(taskLists[category].Id, gtask).Do()
+	t, err := g.srv.Tasks.Insert(taskLists[category].Id, gtask).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to add task: %w", err)
 	}
@@ -115,12 +70,12 @@ func (g *GoogleTaskService) ListProjects() ([]string, error) {
 	return nil, nil
 }
 
-func (g *GoogleTaskService) ListTasks() ([]Task, error) {
+func (g *GoogleTaskService) ListTodoTasks() ([]Task, error) {
 	tasks := []Task{}
 	for _, taskList := range taskLists {
-		gtasks, err := g.service.Tasks.List(taskList.Id).Do()
+		gtasks, err := g.srv.Tasks.List(taskList.Id).Do()
 		if err != nil {
-			return nil, fmt.Errorf("failed to list tasks: %w", err)
+			return nil, fmt.Errorf("failed to get tasks: %w", err)
 		}
 		for _, gtask := range gtasks.Items {
 			tasks = append(tasks, newGoogleTask(gtask))
@@ -133,71 +88,108 @@ func (g *GoogleTaskService) ListTags() ([]string, error) {
 	return nil, nil
 }
 
-func (g *GoogleTaskService) InitOauth2Needed() bool {
-	if _, err := os.Stat(g.tokenFile); err != nil {
-		return true
-	}
-	return false
-}
-
-func (g *GoogleTaskService) GetOauthAuthUrl() string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	stateToken := fmt.Sprintf("%d", r.Int())
-	server := &http.Server{Addr: ":9873"}
-	http.HandleFunc("/taskcommander/oauth", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Connection", "close")
-
-		authCode := r.URL.Query().Get("code")
-		state := r.URL.Query().Get("state")
-		if state != stateToken {
-			http.Error(w, "invalid state", http.StatusBadRequest)
-			g.authChan <- errors.New("invalid state")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		err := g.fetchOauthToken(authCode)
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Auth done, you can close this page now")
-		g.authChan <- err
-	})
-
-	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("HTTP server error: %v", err)
-		}
-	}()
-
-	return g.oauthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline)
-}
-
-func (g *GoogleTaskService) WaitForAuthDone() error {
-	err := <-g.authChan
-	close(g.authChan)
-	if err := g.server.Shutdown(context.Background()); err != nil {
-		return err
+func (g *GoogleTaskService) OAuth2(urlHandler func(string)) error {
+	oauthConfig, err := getOauthConfig()
+	if err != nil {
+		return fmt.Errorf("failed to get oauth config: %w", err)
 	}
 
-	return err
+	tokenFile, err := xdg.StateFile(filepath.Join(core.AppName, tokenFileName))
+	if err != nil {
+		return fmt.Errorf("failed to get token file path: %w", err)
+	}
+
+	if _, err := os.Stat(tokenFile); err != nil {
+		server := &http.Server{Addr: ":9873"}
+		authChan := make(chan error, 1)
+		defer close(authChan)
+		defer server.Shutdown(context.Background()) // nolint:errcheck // don't care error
+
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		stateToken := fmt.Sprintf("%d", r.Int())
+		http.HandleFunc("/taskcommander/oauth", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Connection", "close")
+
+			authCode := r.URL.Query().Get("code")
+			state := r.URL.Query().Get("state")
+			if state != stateToken {
+				http.Error(w, "invalid state", http.StatusBadRequest)
+				authChan <- errors.New("invalid state")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			err := fetchOauthToken(authCode, tokenFile, *oauthConfig)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "Auth done, you can close this page now")
+			authChan <- err
+		})
+
+		go func() {
+			if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+				log.Fatalf("HTTP server error: %v", err)
+			}
+		}()
+
+		go urlHandler(oauthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline))
+
+		err := <-authChan
+		if err != nil {
+			return fmt.Errorf("failed to auth: %w", err)
+		}
+	}
+
+	srv, err := getService(oauthConfig, tokenFile)
+	if err != nil {
+		return fmt.Errorf("failed to create service: %w", err)
+	}
+	g.srv = srv
+
+	if err := g.ensureTaskListExist(); err != nil {
+		return fmt.Errorf("failed to init task list: %w", err)
+	}
+	return nil
 }
 
-func (g *GoogleTaskService) fetchOauthToken(authCode string) error {
-	tok, err := g.oauthConfig.Exchange(context.TODO(), authCode)
+// TODO: find another way to store the secret
+func getOauthConfig() (*oauth2.Config, error) {
+	b, err := os.ReadFile(core.GetConfig().Gtask.CredentialFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read client secret file: %w", err)
+	}
+
+	config, err := google.ConfigFromJSON(b, tasks.TasksScope)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse client secret file to config: %w", err)
+	}
+
+	//config.ClientID = os.Getenv(client_id_key)
+	//if config.ClientID == "" {
+	//return nil, fmt.Errorf("client id not found, please set the environment variable %s", client_id_key)
+	//}
+	config.ClientID = client_id
+
+	config.ClientSecret = os.Getenv(client_secret_key)
+	if config.ClientSecret == "" {
+		return nil, fmt.Errorf("client secret not found, please set the environment variable %s", client_secret_key)
+	}
+
+	return config, nil
+}
+
+func fetchOauthToken(authCode, tokenFile string, oauthConfig oauth2.Config) error {
+	tok, err := oauthConfig.Exchange(context.TODO(), authCode)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve token from web: %w", err)
 	}
 
-	if err := saveToken(g.tokenFile, tok); err != nil {
+	if err := saveToken(tokenFile, tok); err != nil {
 		return fmt.Errorf("failed to save new token: %w", err)
-	}
-	g.service, err = getService(g.oauthConfig, g.tokenFile)
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
 	}
 	return nil
 }
 
 func (g *GoogleTaskService) getTaskLists() ([]*tasks.TaskList, error) {
-	lists, err := g.service.Tasklists.List().Do()
+	lists, err := g.srv.Tasklists.List().Do()
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +209,7 @@ func (g *GoogleTaskService) ensureTaskListExist() error {
 		list := g.findTaskList(lists, taskList)
 		if list == nil {
 			core.GetLogger().Debugf("create task list: %s", taskList.Title)
-			list, err = g.service.Tasklists.Insert(taskList).Do()
+			list, err = g.srv.Tasklists.Insert(taskList).Do()
 			if err != nil {
 				return fmt.Errorf("failed to create task list: %w", err)
 			}
@@ -263,12 +255,12 @@ func getService(config *oauth2.Config, tokenFile string) (*tasks.Service, error)
 	}
 
 	client := oauth2.NewClient(context.Background(), tokenSource)
-	service, err := tasks.NewService(context.Background(), option.WithHTTPClient(client))
+	srv, err := tasks.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
 
-	return service, nil
+	return srv, nil
 }
 
 func tokenFromFile(file string) (*oauth2.Token, error) {

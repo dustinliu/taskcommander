@@ -17,7 +17,7 @@ var listCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		service := getService()
 
-		tasks, err := service.ListTasks()
+		tasks, err := service.ListTodoTasks()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

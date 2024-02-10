@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dustinliu/taskcommander/core"
 	tasks "google.golang.org/api/tasks/v1"
 )
 
@@ -93,10 +94,8 @@ func (t *googleTask) GetStatus() Status {
 	switch t.Status {
 	case gtaskStatusDone:
 		return StatusDone
-	case gtaskStatusTodo:
-		return StatusTodo
 	default:
-		return StatusInvalid
+		return StatusTodo
 	}
 }
 
@@ -168,4 +167,13 @@ func (t *googleTask) GetUpdated() string {
 
 func (t *googleTask) Error() error {
 	return t.err
+}
+
+func (t *googleTask) String() string {
+	s := taskToString(t)
+	if core.Debug {
+		s += fmt.Sprintf("\n\ninternalStatus: %+v\n\n", t.internalStatus)
+		s += fmt.Sprintf("GoogleTask: %+v\n", t.Task)
+	}
+	return s
 }
