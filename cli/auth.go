@@ -15,7 +15,7 @@ func init() {
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "auth to google task",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		service, err := service.NewGoogleTaskService()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create service: %v\n", err)

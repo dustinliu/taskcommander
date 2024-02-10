@@ -7,8 +7,8 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"github.com/dustinliu/taskcommander/core"
+	"github.com/dustinliu/taskcommander/gui/view"
 	"github.com/dustinliu/taskcommander/service"
-	"github.com/dustinliu/taskcommander/view"
 )
 
 var categories = []string{"Inbox", "Next", "Someday", "Focus"}

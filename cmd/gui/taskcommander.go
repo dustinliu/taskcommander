@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/dustinliu/taskcommander/controller"
 	"github.com/dustinliu/taskcommander/core"
+	"github.com/dustinliu/taskcommander/gui/controller"
 )
 
 func main() {
