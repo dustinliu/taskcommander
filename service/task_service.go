@@ -30,12 +30,12 @@ type Task interface {
 }
 
 func taskToString(t Task) string {
-	return fmt.Sprintf("------------------------------\n%T\nId: %s\nTitle: %s\nNote: %s\nStatus: %v\nProject: %s\nFocus: %t\nTags: %v\nCategory: %s\nDue: %s\nCompleted: %s\nUpdated: %s",
+	return fmt.Sprintf("%T: {Id:%s Title:%s Note:%s Status:%v Project:%s Focus:%t Tags:%v Category:%s Due:%s Completed:%s Updated:%s}",
 		t, t.GetId(), t.GetTitle(), t.GetNote(), t.GetStatus().Name(), t.GetProject(), t.GetFocus(), t.GetTags(), t.GetCategory().Name(), t.GetDue(), t.GetCompleted(), t.GetUpdated())
 }
 
 type TaskService interface {
-	OAuth2(urlHandler func(string)) error
+	OAuth2(urlHandler func(string) error) error
 	NewTask() Task
 	AddTask(Task) (Task, error)
 	ListTodoTasks() ([]Task, error)

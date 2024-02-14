@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/url"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -52,17 +53,25 @@ func (app *Application) Run() {
 func (app *Application) init() {
 	s, err := service.NewService()
 	if err != nil {
-		event.QueueEvent(event.NewEventError(err, true))
+		event.SendEvent(event.NewEventError(err, true))
 		return
 	}
 	app.service = s
 
 	// TODO: implement url handler
-	err = s.OAuth2(func(_ string) {
-		event.QueueEvent(event.NewEventError(err, true))
+	err = s.OAuth2(func(u string) error {
+		url, err := url.Parse(u)
+		if err != nil {
+			return err
+		}
+		err = app.OpenURL(url)
+		if err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
-		event.QueueEvent(event.NewEventError(err, true))
+		event.SendEvent(event.NewEventError(err, true))
 		return
 	}
 

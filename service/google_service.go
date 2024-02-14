@@ -9,7 +9,9 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/adrg/xdg"
@@ -26,6 +28,7 @@ const (
 	client_id         = "50757396817-rfurg5f6dsdtag6dohrorqvkhtq39o48.apps.googleusercontent.com"
 
 	tokenFileName = "token.json"
+	opReference   = "op://Personal/Google Task oauth/credential"
 )
 
 var _ TaskService = (*GoogleTaskService)(nil)
@@ -88,7 +91,7 @@ func (g *GoogleTaskService) ListTags() ([]string, error) {
 	return nil, nil
 }
 
-func (g *GoogleTaskService) OAuth2(urlHandler func(string)) error {
+func (g *GoogleTaskService) OAuth2(urlHandler func(string) error) error {
 	oauthConfig, err := getOauthConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get oauth config: %w", err)
@@ -130,7 +133,9 @@ func (g *GoogleTaskService) OAuth2(urlHandler func(string)) error {
 			}
 		}()
 
-		go urlHandler(oauthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline))
+		if err := urlHandler(oauthConfig.AuthCodeURL(stateToken, oauth2.AccessTypeOffline)); err != nil {
+			return fmt.Errorf("failed to handle url: %w", err)
+		}
 
 		err := <-authChan
 		if err != nil {
@@ -168,10 +173,11 @@ func getOauthConfig() (*oauth2.Config, error) {
 	//}
 	config.ClientID = client_id
 
-	config.ClientSecret = os.Getenv(client_secret_key)
-	if config.ClientSecret == "" {
-		return nil, fmt.Errorf("client secret not found, please set the environment variable %s", client_secret_key)
+	secret, err := getSecret()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
+	config.ClientSecret = secret
 
 	return config, nil
 }
@@ -285,4 +291,17 @@ func saveToken(path string, token *oauth2.Token) error {
 		return fmt.Errorf("failed to encode token: %w", err)
 	}
 	return nil
+}
+
+func getSecret() (string, error) {
+	op, err := exec.LookPath("op")
+	if err != nil {
+		return "", fmt.Errorf("failed to find 1password cli: %w", err)
+	}
+	secret, err := exec.Command(op, "read", opReference).Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	return strings.TrimSpace(string(secret)), nil
 }

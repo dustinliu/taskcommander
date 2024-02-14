@@ -48,6 +48,7 @@ func getService() service.TaskService {
 	return srv
 }
 
-func showUrl(url string) {
+func showUrl(url string) error {
 	fmt.Printf("Please visit the following URL to authorize this application:\n%s\n", url)
+	return nil
 }

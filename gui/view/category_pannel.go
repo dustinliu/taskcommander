@@ -24,7 +24,7 @@ func NewCategoryPannel(categories []service.Category, onSelect func(widget.ListI
 		p.OnSelected = onSelect
 	} else {
 		p.OnSelected = func(id widget.ListItemID) {
-			event.QueueEvent(event.NewEventCategoryChanged(p.categories[id]))
+			event.SendEvent(event.NewEventCategoryChanged(p.categories[id]))
 		}
 	}
 

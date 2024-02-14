@@ -5,7 +5,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
-	"github.com/dustinliu/taskcommander/core"
 	"github.com/dustinliu/taskcommander/service"
 )
 
@@ -43,7 +42,6 @@ func (t *TaskPannel) updateCell(id widget.TableCellID, cell fyne.CanvasObject) {
 }
 
 func (t *TaskPannel) SetTasks(tasks []service.Task) {
-	core.GetLogger().Debugf("set tasks: %v, length: %d\n", tasks, len(tasks))
 	t.tasks = tasks
 	t.Refresh()
 }

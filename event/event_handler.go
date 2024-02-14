@@ -16,13 +16,13 @@ func init() {
 	go worker()
 }
 
-func QueueEvent(event Event) {
+func SendEvent(event Event) {
 	core.GetLogger().Debugf("queued %T: %+v", event, event)
 	eventChannel <- event
 }
 
 func QueueFunc(f func()) {
-	QueueEvent(EventWorker{f: f})
+	SendEvent(EventWorker{f: f})
 }
 
 func ListenEvent(f func(Event) Event) {
